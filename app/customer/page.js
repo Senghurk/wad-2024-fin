@@ -15,7 +15,7 @@ import {
 
 export default function CustomerPage() {
   const API_BASE =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+    process.env.NEXT_PUBLIC_API_URL || "https://u6440041-wad-2024-fin.vercel.app/api";
   const [customers, setCustomers] = useState([]);
   const [open, setOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
