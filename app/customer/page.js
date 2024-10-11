@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import {
   Button,
@@ -11,14 +11,11 @@ import {
   Snackbar,
   Alert,
   Typography,
-  IconButton,
 } from "@mui/material";
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 
 export default function CustomerPage() {
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
   const [customers, setCustomers] = useState([]);
   const [open, setOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -31,11 +28,11 @@ export default function CustomerPage() {
   });
   const [snackbar, setSnackbar] = useState(null);
 
-  const formatDate = useCallback((dateString) => {
+  const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleDateString();
-  }, []);
+  };
 
   const columns = [
     { field: "name", headerName: "Name", width: 130 },
@@ -43,56 +40,71 @@ export default function CustomerPage() {
       field: "dateOfBirth",
       headerName: "Date of Birth",
       width: 130,
-      valueGetter: (params) => formatDate(params.row?.dateOfBirth),
+      valueGetter: (params) => {
+        return params.row ? formatDate(params.row.dateOfBirth) : "N/A";
+      },
     },
     { field: "memberNumber", headerName: "Member Number", width: 130 },
     { field: "interests", headerName: "Interests", width: 200 },
     {
       field: "actions",
       headerName: "Actions",
-      width: 150,
-      renderCell: (params) => (
-        <>
-          <IconButton onClick={() => handleDetailsClick(params.row)} size="small">
-            <VisibilityIcon />
-          </IconButton>
-          <IconButton onClick={() => handleEditClick(params.row)} size="small">
-            <EditIcon />
-          </IconButton>
-          <IconButton onClick={() => handleDelete(params.row._id)} size="small">
-            <DeleteIcon />
-          </IconButton>
-        </>
-      ),
+      width: 300,
+      renderCell: (params) =>
+        params.row ? (
+          <>
+            <Button onClick={() => handleDetailsClick(params.row)}>
+              Details
+            </Button>
+            <Button onClick={() => handleEditClick(params.row)}>Edit</Button>
+            <Button onClick={() => handleDelete(params.row._id)}>Delete</Button>
+          </>
+        ) : null,
     },
   ];
 
-  const fetchCustomers = useCallback(async () => {
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const fetchCustomers = async () => {
     try {
       const response = await fetch(`${API_BASE}/customer`);
-      if (!response.ok) throw new Error(`Failed to fetch customers: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch customers: ${response.status}`);
+      }
       const data = await response.json();
+      console.log("Fetched customers:", data); // Log fetched data
       setCustomers(data);
     } catch (error) {
       console.error("Error fetching customers:", error);
-      setSnackbar({ children: `Error fetching customers: ${error.message}`, severity: "error" });
+      setSnackbar({
+        children: `Error fetching customers: ${error.message}`,
+        severity: "error",
+      });
     }
-  }, [API_BASE]);
-
-  useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+  };
 
   const handleOpen = () => {
     setSelectedCustomer(null);
-    setCustomerData({ name: "", dateOfBirth: "", memberNumber: "", interests: "" });
+    setCustomerData({
+      name: "",
+      dateOfBirth: "",
+      memberNumber: "",
+      interests: "",
+    });
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
     setSelectedCustomer(null);
-    setCustomerData({ name: "", dateOfBirth: "", memberNumber: "", interests: "" });
+    setCustomerData({
+      name: "",
+      dateOfBirth: "",
+      memberNumber: "",
+      interests: "",
+    });
   };
 
   const handleDetailsClick = (customer) => {
@@ -112,32 +124,51 @@ export default function CustomerPage() {
 
   const handleSubmit = async () => {
     try {
-      const url = selectedCustomer ? `${API_BASE}/customer/${selectedCustomer._id}` : `${API_BASE}/customer`;
+      const url = selectedCustomer
+        ? `${API_BASE}/customer/${selectedCustomer._id}`
+        : `${API_BASE}/customer`;
       const method = selectedCustomer ? "PUT" : "POST";
+
       const response = await fetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(customerData),
       });
 
-      if (!response.ok) throw new Error(`Failed to ${selectedCustomer ? "update" : "add"} customer: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to ${selectedCustomer ? "update" : "add"} customer: ${
+            response.status
+          }`
+        );
+      }
 
       const updatedCustomer = await response.json();
-      setCustomers((prev) => 
-        selectedCustomer 
-          ? prev.map((c) => (c._id === updatedCustomer._id ? updatedCustomer : c))
-          : [...prev, updatedCustomer]
-      );
+
+      if (selectedCustomer) {
+        setCustomers((prev) =>
+          prev.map((c) => (c._id === updatedCustomer._id ? updatedCustomer : c))
+        );
+      } else {
+        setCustomers((prev) => [...prev, updatedCustomer]);
+      }
 
       handleClose();
       setSnackbar({
-        children: `Customer ${selectedCustomer ? "updated" : "added"} successfully`,
+        children: `Customer ${
+          selectedCustomer ? "updated" : "added"
+        } successfully`,
         severity: "success",
       });
     } catch (error) {
-      console.error(`Error ${selectedCustomer ? "updating" : "adding"} customer:`, error);
+      console.error(
+        `Error ${selectedCustomer ? "updating" : "adding"} customer:`,
+        error
+      );
       setSnackbar({
-        children: `Error ${selectedCustomer ? "updating" : "adding"} customer: ${error.message}`,
+        children: `Error ${
+          selectedCustomer ? "updating" : "adding"
+        } customer: ${error.message}`,
         severity: "error",
       });
     }
@@ -147,7 +178,9 @@ export default function CustomerPage() {
     setSelectedCustomer(customer);
     setCustomerData({
       name: customer.name,
-      dateOfBirth: customer.dateOfBirth ? new Date(customer.dateOfBirth).toISOString().split("T")[0] : "",
+      dateOfBirth: customer.dateOfBirth
+        ? new Date(customer.dateOfBirth).toISOString().split("T")[0]
+        : "",
       memberNumber: customer.memberNumber,
       interests: customer.interests,
     });
@@ -155,15 +188,25 @@ export default function CustomerPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this customer?")) return;
+    if (!confirm("Are you sure you want to delete this customer?")) return;
     try {
-      const response = await fetch(`${API_BASE}/customer/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error(`Failed to delete customer: ${response.status}`);
+      const response = await fetch(`${API_BASE}/customer/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to delete customer: ${response.status}`);
+      }
       setCustomers((prev) => prev.filter((customer) => customer._id !== id));
-      setSnackbar({ children: "Customer deleted successfully", severity: "success" });
+      setSnackbar({
+        children: "Customer deleted successfully",
+        severity: "success",
+      });
     } catch (error) {
       console.error("Error deleting customer:", error);
-      setSnackbar({ children: `Error deleting customer: ${error.message}`, severity: "error" });
+      setSnackbar({
+        children: `Error deleting customer: ${error.message}`,
+        severity: "error",
+      });
     }
   };
 
@@ -172,7 +215,12 @@ export default function CustomerPage() {
   return (
     <div className="m-4">
       <h1 className="text-2xl font-bold mb-4">Customers</h1>
-      <Button onClick={handleOpen} variant="contained" color="primary" className="mb-4">
+      <Button
+        onClick={handleOpen}
+        variant="contained"
+        color="primary"
+        className="mb-4"
+      >
         Add New Customer
       </Button>
       <div style={{ height: 400, width: "100%" }}>
@@ -186,7 +234,9 @@ export default function CustomerPage() {
       </div>
 
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{selectedCustomer ? "Edit Customer" : "Add New Customer"}</DialogTitle>
+        <DialogTitle>
+          {selectedCustomer ? "Edit Customer" : "Add New Customer"}
+        </DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -233,7 +283,9 @@ export default function CustomerPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>{selectedCustomer ? "Update" : "Add"}</Button>
+          <Button onClick={handleSubmit}>
+            {selectedCustomer ? "Update" : "Add"}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -242,10 +294,19 @@ export default function CustomerPage() {
         <DialogContent>
           {selectedCustomer && (
             <>
-              <Typography><strong>Name:</strong> {selectedCustomer.name}</Typography>
-              <Typography><strong>Date of Birth:</strong> {formatDate(selectedCustomer.dateOfBirth)}</Typography>
-              <Typography><strong>Member Number:</strong> {selectedCustomer.memberNumber}</Typography>
-              <Typography><strong>Interests:</strong> {selectedCustomer.interests}</Typography>
+              <Typography>
+                <strong>Name:</strong> {selectedCustomer.name}
+              </Typography>
+              <Typography>
+                <strong>Date of Birth:</strong>{" "}
+                {formatDate(selectedCustomer.dateOfBirth)}
+              </Typography>
+              <Typography>
+                <strong>Member Number:</strong> {selectedCustomer.memberNumber}
+              </Typography>
+              <Typography>
+                <strong>Interests:</strong> {selectedCustomer.interests}
+              </Typography>
             </>
           )}
         </DialogContent>
